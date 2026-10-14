@@ -186,3 +186,13 @@ function editarGasto_(b, ses) {
   log_(ses, g.Barrio, "EDITA GASTO", { id: b.id, antes: pick_(antes, Object.keys(f)), despues: f });
   return { ok: true };
 }
+
+/** Cambia el nombre con el que se muestra una liquidación (no toca ningún importe). */
+function editarPeriodo_(b, ses) {
+  var p = readSheet_("PERIODOS").filter(function (x) { return x.ID_Periodo === b.id; })[0]; if (!p) throw new Error("No se encontró la liquidación " + b.id + ".");
+  exigir_(ses, p.Barrio);
+  var t = texto_(b.titulo, 80); if (!t) throw new Error("Escribí un nombre.");
+  var antes = updateRow_("PERIODOS", "ID_Periodo", b.id, { Titulo: t });
+  log_(ses, p.Barrio, "NOMBRE LIQUIDACIÓN", { id: b.id, antes: antes ? antes.Titulo : "", despues: t });
+  return { ok: true };
+}

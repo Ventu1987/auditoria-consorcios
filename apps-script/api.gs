@@ -23,7 +23,8 @@ function doGet(e) {
 
 var ACCIONES = {
   preview: { fn: function (b, s) { return { preview: prepareAndStore_(parseJson_(b.json), { origen: b.pdfBase64 ? "PDF (lectura en la app)" : "JSON", archivo: b.filename || "carga manual", fileUrl: guardarPdf_(b), usuario: s.usuario }, s) }; }, escribe: false },
-  commit: { fn: function (b, s) { return commit_(b.draftId, !!b.force, s); } },
+  commit: { fn: function (b, s) { return commit_(b.draftId, !!b.force, s, b.titulo); } },
+  periodo: { fn: function (b, s) { return editarPeriodo_(b, s); } },
   evento: { fn: function (b, s) { return evento_(b, s); } },
   nuevo_hallazgo: { fn: function (b, s) { return nuevoHallazgo_(b, s); } },
   hallazgo: { fn: function (b, s) { return editarHallazgo_(b, s); } },

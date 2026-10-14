@@ -231,7 +231,7 @@ function prepareAndStore_(liq, meta, ses) {
   var pub = {}; Object.keys(prep).forEach(function (k) { if (k.charAt(0) !== "_") pub[k] = prep[k]; });
   return pub;
 }
-function commit_(draftId, force, ses) {
+function commit_(draftId, force, ses, titulo) {
   var prep = JSON.parse(DriveApp.getFileById(draftId).getBlob().getDataAsString());
   if (!puede_(ses, prep.barrio)) throw new Error("Tu usuario no puede cargar liquidaciones de " + prep.barrioNombre + ".");
   var ctx = context_(), p = prep.idPeriodo, mes = prep.periodo, bid = prep.barrio;
@@ -253,6 +253,7 @@ function commit_(draftId, force, ses) {
   var per = R.PERIODOS[0];
   per.Unidades_Con_Deuda = (R.PRORRATEO || []).length ? R.PRORRATEO.filter(function (u) { return num_(u.Deuda) > 1; }).length : ND;
   per.Fecha_Carga = hoy_();
+  per.Titulo = String(titulo || "").trim().slice(0, 80) || per.Periodo; // nombre que se muestra; se puede cambiar después
   ["PERIODOS", "GASTOS", "DETALLE_COMPONENTES", "PAGOS_PER_ANTERIORES", "INGRESOS", "EGRESOS_CAJA", "FONDOS", "SALDOS_PATRIMONIO", "PRORRATEO", "CONTINUIDAD", "MOROSIDAD", "CUPON_UNIDAD", "RECIBOS", "VALIDACIONES"]
     .forEach(function (n) { append_(n, (R[n] || []).map(revive)); });
   // conceptos nuevos: se agregan al catálogo con una etiqueta provisoria que el auditor puede corregir

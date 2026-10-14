@@ -32,7 +32,7 @@ var SCHEMA = {
   PERIODOS: { g: "LIQ", pub: true, cols: ["ID_Periodo", "Barrio", "Mes", "Periodo", "Periodo_Num", "Liquidacion", "Consorcio", "CUIT_Consorcio", "Administrador", "CUIT_Administrador", "Matricula_Admin",
     "Fecha_Emision", "Fecha_Vencimiento", "Recargo_Vencimiento", "Fecha_Cierre", "Total_Gastos_Periodo", "Base_Prorrateo_Ord", "Gastos_Particulares", "Total_Expensas", "Total_Liquidado_Con_Deudas",
     "Gastos_Ordinarios", "Gastos_Extraordinarios", "Fondo_Reserva", "Ingresos", "Egresos_Caja", "Saldo_Inicial", "Saldo_Final", "Patrimonio_Neto", "Gastos_Pendientes_Pago",
-    "Pagos_Periodos_Anteriores", "Expensa_Ord_Lote_Tipo", "Coef_Lote_Tipo", "Cantidad_Unidades", "Unidades_Con_Deuda", "Observaciones", "Fuente_PDF", "Paginas", "Estado_Revision", "Fecha_Carga"] },
+    "Pagos_Periodos_Anteriores", "Expensa_Ord_Lote_Tipo", "Coef_Lote_Tipo", "Cantidad_Unidades", "Unidades_Con_Deuda", "Titulo", "Observaciones", "Fuente_PDF", "Paginas", "Estado_Revision", "Fecha_Carga"] },
   GASTOS: { g: "LIQ", pub: true, cols: ["ID_Gasto", "ID_Periodo", "Barrio", "Mes", "Periodo", "Periodo_Num", "Fecha", "Rubro_Original", "Item", "Categoria", "Subcategoria", "Concepto_Original",
     "Concepto_Normalizado", "ID_Proveedor", "Proveedor", "Detalle", "Tipo_Gasto", "Importe", "IVA", "Ordinario_Extraordinario", "Periodo_Servicio", "Estado_Pago", "Es_Estimado", "Es_Provisorio",
     "Base_Prorrateo_Doc", "Porc_Participacion_Doc", "Medio_Pago", "Comprobante", "Observacion", "Fuente_PDF", "Pagina", "Estado_Validacion"] },
@@ -106,8 +106,21 @@ function fechaOk_(f) { return /^\d{4}-\d{2}-\d{2}$/.test(String(f || "")) ? Stri
 function readSheet_(name, ssOpt) {
   var ss = ssOpt || db_(), sh = ss.getSheetByName(name); if (!sh || sh.getLastRow() < 2) return [];
   var v = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues(), h = v[0], tz = ss.getSpreadsheetTimeZone();
-  return v.slice(1).map(function (r) { var o = {}; h.forEach(function (k, i) { if (k === "") return; var x = r[i]; o[k] = x instanceof Date ? Utilities.formatDate(x, tz, "yyyy-MM-dd") : x; }); return o; })
+  return v.slice(1).map(function (r) { var o = {}; h.forEach(function (k, i) { if (k === "") return; var x = r[i]; o[k] = x instanceof Date ? Utilities.formatDate(x, tz, "yyyy-MM-dd") : x; }); return normMes_(o); })
     .filter(function (o) { return Object.keys(o).some(function (k) { return o[k] !== ""; }); });
+}
+/**
+ * El mes siempre como texto AAAA-MM. Sheets a veces guarda "2026-10" como fecha (serial 46296) o como "2026-10-01":
+ * si la fila tiene ID_Periodo (S2-2026-10) manda ese; si no, se convierte el serial o la fecha.
+ */
+function normMes_(o) {
+  if (!o.hasOwnProperty("Mes")) return o;
+  var m = String(o.ID_Periodo || "").match(/-(\d{4}-\d{2})$/);
+  if (m) { o.Mes = m[1]; return o; }
+  var x = o.Mes;
+  if (typeof x === "number" || /^\d{5}(\.\d+)?$/.test(String(x))) { var n = Number(x); if (n > 30000 && n < 80000) { var d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 864e5); o.Mes = d.getUTCFullYear() + "-" + ("0" + (d.getUTCMonth() + 1)).slice(-2); } }
+  else if (/^\d{4}-\d{2}-\d{2}/.test(String(x))) o.Mes = String(x).slice(0, 7);
+  return o;
 }
 function headers_(name) {
   var sh = db_().getSheetByName(name); if (!sh) throw new Error("No existe la hoja " + name + ". Ejecutá crearPlanilla().");
