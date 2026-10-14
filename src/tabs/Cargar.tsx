@@ -36,10 +36,11 @@ function PasoLiquidacion({ onListo }: { onListo: (mes: string) => void }) {
   const [liqJ, setLiq] = useState<any>(null);
   const [prev, setPrev] = useState<any>(null);
   const [force, setForce] = useState(false);
+  const [titulo, setTitulo] = useState("");
   const [busy, setBusy] = useState(""), [err, setErr] = useState("");
   const leer = async (f: File) => {
     setFile(f); setLiq(null); setPrev(null); setErr(""); setBusy("Leyendo el PDF…");
-    try { const lib = await pdfjs(); const j = await LiqParser.fromFile(lib, new Uint8Array(await f.arrayBuffer())); setLiq(j); }
+    try { const lib = await pdfjs(); const j = await LiqParser.fromFile(lib, new Uint8Array(await f.arrayBuffer())); setLiq(j); setTitulo(/^\d{4}-\d{2}$/.test(j.periodo || "") ? mesTitulo(j.periodo) : ""); }
     catch (e) { setErr("No se pudo leer el PDF: " + String((e as Error).message || e)); } finally { setBusy(""); }
   };
   const revisar = async () => {
@@ -49,7 +50,7 @@ function PasoLiquidacion({ onListo }: { onListo: (mes: string) => void }) {
   };
   const incorporar = async () => {
     setBusy("Guardando en la planilla…"); setErr("");
-    try { const r = await A.guardar("commit", { draftId: prev.draftId, force }, "Liquidación incorporada."); if (r) onListo(r.mes || prev.periodo); }
+    try { const r = await A.guardar("commit", { draftId: prev.draftId, force, titulo: titulo.trim() }, "Liquidación incorporada."); if (r) onListo(r.mes || prev.periodo); }
     catch (e) { setErr(String((e as Error).message || e)); } finally { setBusy(""); }
   };
   const gastos = liqJ?.gastos || [];
@@ -70,6 +71,8 @@ function PasoLiquidacion({ onListo }: { onListo: (mes: string) => void }) {
             <tr><td>Ítems de gasto</td><td>{gastos.length} · suman {money(gastos.reduce((s: number, g: any) => s + n0(g.importe), 0))}</td></tr>
             <tr><td>Unidades en el prorrateo</td><td>{(liqJ.prorrateo || []).length}</td></tr>
           </tbody></table></div>
+          <label className="sel" style={{ textTransform: "none", letterSpacing: 0, fontSize: 13 }}>Nombre con el que se va a ver la liquidación (se puede cambiar después)
+            <input className="field" value={titulo} maxLength={80} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej.: Octubre 2026" /></label>
           {(liqJ.dudas || []).length > 0 && <Simple warn tag="Revisar">{liqJ.dudas.map((d: any, i: number) => <p key={i} className="small">{d.campo}: {d.detalle}</p>)}</Simple>}
           {!prev && <div className="actions"><button className="btn" type="button" onClick={revisar} disabled={!!busy || A.ds?.demo}>Controlar contra la planilla</button>
             {A.ds?.demo && <span className="small muted">En demostración no se puede controlar ni guardar.</span>}</div>}

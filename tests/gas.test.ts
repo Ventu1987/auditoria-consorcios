@@ -97,6 +97,10 @@ describe("backend de Apps Script (simulado)", () => {
     expect(h.id).toMatch(/^H\d+/);
     const m = E.post({ action: "reporte", token: s.token, barrio: "S2", fila: { Fecha_Envio: "2026-10-14", Para: "RyM", Asunto: "x", Plazo_Dias: 10, Vence: "2026-10-28", Puntos: "H23,H26", Cuerpo: "..." } });
     expect(m.id).toBe("M001");
+    const per = E.post({ action: "periodo", token: s.token, barrio: "S2", id: "S2-2026-10", titulo: "Octubre 2026 (prueba)" });
+    expect(per.ok).toBe(true);
+    expect(E.get({ action: "data", barrio: "S2" }).sheets.PERIODOS.find((p: any) => p.ID_Periodo === "S2-2026-10").Titulo).toBe("Octubre 2026 (prueba)");
+    expect(E.post({ action: "periodo", token: s1.token, barrio: "S2", id: "S2-2026-10", titulo: "x" }).error).toMatch(/no puede/);
     const log = E.g.readSheet_("LOG");
     expect(log.some((l: any) => l.Accion === "EDITA OPORTUNIDAD" && /PLANTEADA/.test(l.Detalle))).toBe(true);
     const d = E.get({ action: "data", barrio: "S2" });

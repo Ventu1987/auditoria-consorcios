@@ -1,8 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { BARRIOS_APP, TABS } from "./config";
 import { useApp } from "./state";
 import { periodosDe } from "./engine/ctx";
 import { mesTitulo } from "./domain/format";
+import { nombreLiq } from "./domain/normalizar";
+import { Dialog } from "./components/ui";
 import { salir } from "./api/client";
 import Dashboard from "./tabs/Dashboard";
 import { Empty } from "./components/ui";
@@ -21,6 +23,7 @@ const VISTAS: Record<string, React.ComponentType> = { dashboard: Dashboard, comp
 
 export default function App() {
   const A = useApp(), { ruta, ds, ctx } = A;
+  const [ren, setRen] = useState(false);
   const Vista = VISTAS[ruta.tab] || Dashboard;
   if (ruta.tab === "resumen") return <Suspense fallback={<p className="empty">Armando el resumen…</p>}>{ctx ? <Resumen /> : <Estado />}</Suspense>;
   const pers = ds ? periodosDe(ds, ruta.barrio).slice().reverse() : [];
@@ -38,9 +41,10 @@ export default function App() {
           <label className="sel">Liquidación
             <select value={ctx?.mes || ""} onChange={(e) => A.ir({ mes: e.target.value })} disabled={!pers.length}>
               {!pers.length && <option value="">Sin liquidaciones</option>}
-              {pers.map((p) => <option key={p.Mes} value={p.Mes}>{mesTitulo(p.Mes)}</option>)}
+              {pers.map((p) => <option key={p.Mes} value={p.Mes}>{nombreLiq(p, mesTitulo)}</option>)}
             </select>
           </label>
+          {A.puedeEditar && ctx && <button className="btn ghost sm" type="button" onClick={() => setRen(true)} title="Cambiar el nombre con el que se muestra esta liquidación">Renombrar</button>}
           <button className="btn ghost" type="button" onClick={A.cambiarTema} aria-pressed={A.tema === "dark"}>{A.tema === "dark" ? "Modo claro" : "Modo oscuro"}</button>
           <a className="btn ghost" href={A.link({ tab: "resumen" })} aria-disabled={!ctx}>Resumen PDF</a>
           <a className="btn" href={A.link({ tab: A.sesion ? "cargar" : "ingresar" })}>Cargar expensa</a>
@@ -66,7 +70,22 @@ export default function App() {
           : <Vista />}
       </Suspense>
       {!A.sesion && ruta.tab !== "ingresar" && <p className="wrap small muted noprint" style={{ padding: "0 24px 24px", maxWidth: 1240, margin: "0 auto" }}>¿Sos auditor de tu barrio? <a href={A.link({ tab: "ingresar" })}>Ingresá con tu usuario</a>.</p>}
+      {ren && ctx && <Renombrar onClose={() => setRen(false)} />}
     </>
+  );
+}
+/** Cambia el nombre visible de la liquidación elegida (no toca importes). */
+function Renombrar({ onClose }: { onClose: () => void }) {
+  const A = useApp(), ctx = A.ctx!;
+  const [t, setT] = useState(nombreLiq(ctx.per, mesTitulo));
+  const [busy, setBusy] = useState(false);
+  const guardar = async () => { setBusy(true); try { await A.guardar("periodo", { id: ctx.per.ID_Periodo, titulo: t }, "Nombre actualizado."); onClose(); } catch { /* aviso mostrado */ } finally { setBusy(false); } };
+  return (
+    <Dialog title="Nombre de la liquidación" onClose={onClose}>
+      <p className="small muted">Es solo el nombre que se ve en el selector y en el resumen. La liquidación sigue siendo {ctx.per.ID_Periodo}.</p>
+      <div className="form"><label>Nombre<input className="field" value={t} maxLength={80} onChange={(e) => setT(e.target.value)} /></label></div>
+      <div className="actions"><button className="btn" type="button" disabled={busy || !t.trim()} onClick={guardar}>Guardar</button><button className="btn ghost" type="button" onClick={() => setT(mesTitulo(ctx.mes))}>Volver a «{mesTitulo(ctx.mes)}»</button><button className="btn ghost" type="button" onClick={onClose}>Cancelar</button></div>
+    </Dialog>
   );
 }
 function Estado() { const A = useApp(); return <main className="main">{A.cargando ? <p className="muted">Cargando…</p> : <Empty>No hay datos para armar el resumen.</Empty>}</main>; }

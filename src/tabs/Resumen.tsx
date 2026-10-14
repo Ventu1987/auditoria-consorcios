@@ -43,7 +43,7 @@ export default function Resumen() {
       </div>
       {wrap(
         <article className="pg">
-          <div className="mast"><div><p className="e">{ctx.nombre} · Resumen para propietarios</p><h1>Expensa de {mesN} {ctx.mes.slice(0, 4)}</h1></div><p className="d">Liquidación {liq(ctx.mes)}<br />Datos al {ddmmaa(String(A.ds?.updated || ""))}</p></div>
+          <div className="mast"><div><p className="e">{ctx.nombre} · Resumen para propietarios</p><h1>{ctx.per.Titulo && ctx.per.Titulo !== ctx.per.Periodo ? ctx.per.Titulo : `Expensa de ${mesN} ${ctx.mes.slice(0, 4)}`}</h1></div><p className="d">Liquidación {liq(ctx.mes)}<br />Datos al {ddmmaa(String(A.ds?.updated || ""))}</p></div>
           <p className="lead">Tu expensa (lote común) es de <b className="num">{money(T.exp)}</b>. {T.lead}</p>
           <div className="k4">
             <div className="k"><span className="t">Gasto total del barrio</span><span className="v">{money(C.totalCur)}</span><span className="s">{T.vG !== null ? `${pct(T.vG, { sign: true })} contra ${mesNombre(ctx.prev!.Mes)}` : "Primera liquidación cargada"}</span></div>

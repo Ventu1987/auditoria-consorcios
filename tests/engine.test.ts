@@ -204,3 +204,14 @@ describe("La Huella (liquidaciones 08 a 10/2026)", () => {
     expect(titular(c, comparativo(c), controles(c)).lead).toContain("pero la expensa bajó porque en septiembre");
   });
 });
+
+describe("Mes guardado como fecha por Sheets", () => {
+  it("serial 46296 y fecha completa vuelven a AAAA-MM", async () => {
+    const { normalizar, nombreLiq } = await import("../src/domain/normalizar");
+    const { mesTitulo } = await import("../src/domain/format");
+    const d = normalizar({ version: 1, updated: "", barrio: "S2", sheets: { PERIODOS: [{ ID_Periodo: "S2-2026-10", Mes: 46296 }, { Mes: "46296" }, { Mes: "2026-09-01" }] } } as any);
+    expect(d.sheets.PERIODOS.map((p) => p.Mes)).toEqual(["2026-10", "2026-10", "2026-09"]);
+    expect(nombreLiq(d.sheets.PERIODOS[0], mesTitulo)).toBe("Octubre 2026");
+    expect(nombreLiq({ Mes: "2026-10", Titulo: "46296 4629" }, mesTitulo)).toBe("46296 4629");
+  });
+});

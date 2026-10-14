@@ -1,5 +1,6 @@
 import { API_URL } from "../config";
 import type { Dataset, Sesion } from "../domain/types";
+import { normalizar } from "../domain/normalizar";
 
 /** localStorage puede no estar disponible (modo privado): todo va envuelto. */
 export const store = {
@@ -15,7 +16,7 @@ const demoUrl = (b: string) => new URL(`./demo/${b}.json`, document.baseURI).toS
 async function demo(barrio: string, aviso?: string): Promise<Carga> {
   const r = await fetch(demoUrl(barrio));
   if (!r.ok) throw new Error("No se pudieron cargar los datos de demostración.");
-  return { ds: { ...(await r.json()), demo: true }, origen: "demo", aviso };
+  return { ds: normalizar({ ...(await r.json()), demo: true }), origen: "demo", aviso };
 }
 
 /**
@@ -33,15 +34,15 @@ export async function cargarDatos(barrio: string, opt: { forzarDemo?: boolean } 
     clearTimeout(t);
     const j = await r.json();
     if (j.error) throw new Error(j.error);
-    if (j.notModified && cached) return { ds: cached, origen: "cache" };
+    if (j.notModified && cached) return { ds: normalizar(cached), origen: "cache" };
     if (j.sheets) {
-      if (j.version === undefined) return { ds: { ...j, version: 0, barrio }, origen: "anterior", aviso: "La API todavía tiene el código del portal anterior. Pegá el código nuevo en Apps Script (ver la guía) para habilitar la carga por barrio." };
+      if (j.version === undefined) return { ds: normalizar({ ...j, version: 0, barrio }), origen: "anterior", aviso: "La API todavía tiene el código del portal anterior. Pegá el código nuevo en Apps Script (ver la guía) para habilitar la carga por barrio." };
       store.set(key, JSON.stringify(j));
-      return { ds: j, origen: "api" };
+      return { ds: normalizar(j), origen: "api" };
     }
     throw new Error("Respuesta inesperada de la API.");
   } catch (e) {
-    if (cached) return { ds: cached, origen: "cache", aviso: "Sin conexión con la planilla: se muestran los últimos datos guardados en este dispositivo." };
+    if (cached) return { ds: normalizar(cached), origen: "cache", aviso: "Sin conexión con la planilla: se muestran los últimos datos guardados en este dispositivo." };
     return demo(barrio, "No se pudo conectar con la planilla. Se muestran datos de demostración (liquidaciones cargadas hasta octubre 2026).");
   }
 }
